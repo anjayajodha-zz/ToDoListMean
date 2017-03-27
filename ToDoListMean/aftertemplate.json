@@ -23,8 +23,8 @@
   },
   "variables": {
     "imagePublisher": "Canonical",
-    "imageOffer": "Ubuntu",
-    "imageSku": "Server",
+    "imageOffer": "UbuntuServer",
+    "imageSku": "14.04.3-LTS",
     "OSDiskName": "osdisk",
     "nicName": "[concat('vnic',uniqueString(resourceGroup().name))]",
     "addressPrefix": "10.0.0.0/24",
@@ -193,6 +193,9 @@
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
       "name": "[concat(variables('vmName'),'/LinuxCustomScriptExtension')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/',variables('vmName'))]"
+      ],
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "properties": {
