@@ -2,41 +2,6 @@
   "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "newStorageAccountName": {
-      "type": "string",
-      "metadata": {
-        "description": "Unique DNS Name for the Storage Account where the Virtual Machine's disks will be placed."
-      }
-    },
-    "vmName": {
-      "type": "string",
-      "metadata": {
-        "description": "Name of the VM."
-      }
-    },
-    "blobStorageEndpoint": {
-      "type": "string",
-      "defaultValue": "blob.local.azurestack.external",
-      "allowedValues": [
-        "blob.local.azurestack.external",
-        "blob.core.windows.net"
-      ],
-      "metadata": {
-        "description": "Blob storage endpoint"
-      }
-    },
-    "deploymentLocation": {
-      "type": "string",
-      "defaultValue": "local",
-      "allowedValues": [
-        "local",
-        "westus",
-        "eastus"
-      ],
-      "metadata": {
-        "description": "Blob storage endpoint"
-      }
-    },
     "adminUsername": {
       "type": "string",
       "metadata": {
@@ -57,31 +22,30 @@
     }
   },
   "variables": {
-    "location": "[parameters('deploymentLocation')]",
     "imagePublisher": "Canonical",
     "imageOffer": "Ubuntu",
     "imageSku": "Server",
     "OSDiskName": "osdisk",
-    "nicName": "myVnic",
+    "nicName": "[concat('vnic',uniqueString(resourceGroup().name))]",
     "addressPrefix": "10.0.0.0/24",
-    "subnetName": "mySubnet",
+    "subnetName": "[concat('subnet',uniqueString(resourceGroup().name))]",
     "subnetPrefix": "10.0.0.0/24",
-    "storageAccountType": "Standard_LRS",
-    "publicIPAddressName": "myPublicIP",
-    "publicIPAddressType": "Dynamic",
+    "publicIPAddressName": "[concat('publicip',uniqueString(resourceGroup().name))]",
+    "vmName": "[concat('meanvm',uniqueString(resourceGroup().name))]",
     "vmStorageAccountContainerName": "vhds",
-    "vmSize": "Standard_A1",
-    "virtualNetworkName": "myVnet",
+    "vmSize": "Standard_D1",
+    "virtualNetworkName": "[concat('vnet',uniqueString(resourceGroup().name))]",
     "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
+    "storageAccountName":"[concat('storage',uniqueString(resourceGroup().name))]",
     "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-    "networkSecurityGroupName": "mySG"
+    "networkSecurityGroupName": "[concat('nsg',uniqueString(resourceGroup().name))]"
   },
   "resources": [
     {
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/networkSecurityGroups",
       "name": "[variables('networkSecurityGroupName')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "tags": {
         "displayName": "NetworkSecurityGroup"
       },
@@ -105,30 +69,30 @@
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
-      "name": "[toLower(parameters('newStorageAccountName'))]",
-      "apiVersion": "2015-06-15",
-      "location": "[variables('location')]",
+      "name": "[variables('storageAccountName')]",
+      "apiVersion": "2016-01-01",
+      "location": "[resourceGroup().location]",
       "properties": {
-        "accountType": "[variables('storageAccountType')]"
+        "accountType": "Standard_LRS"
       }
     },
     {
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[variables('publicIPAddressName')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "properties": {
-        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+        "publicIPAllocationMethod": "Static",
         "dnsSettings": {
           "domainNameLabel": "[parameters('dnsNameForPublicIP')]"
         }
       }
     },
     {
-      "apiVersion": "2015-05-01-preview",
+      "apiVersion": "2015-06-15",
       "type": "Microsoft.Network/virtualNetworks",
       "name": "[variables('virtualNetworkName')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]"
       ],
@@ -148,25 +112,19 @@
               }
             }
           }
-        ],
-        "dhcpOptions": {
-          "dnsServers": [ "192.168.100.2" ]
-        }
+        ]
       }
     },
     {
       "apiVersion": "2015-05-01-preview",
       "type": "Microsoft.Network/networkInterfaces",
       "name": "[variables('nicName')]",
-      "location": "[variables('location')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
         "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
         "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
       ],
       "properties": {
-        "dnsSettings": {
-          "dnsServers": [ "192.168.100.2" ]
-        },
         "ipConfigurations": [
           {
             "name": "ipconfig1",
@@ -184,12 +142,12 @@
       }
     },
     {
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2016-03-30",
       "type": "Microsoft.Compute/virtualMachines",
-      "name": "[parameters('vmName')]",
-      "location": "[variables('location')]",
+      "name": "[variables('vmName')]",
+      "location": "[resourceGroup().location]",
       "dependsOn": [
-        "[concat('Microsoft.Storage/storageAccounts/', parameters('newStorageAccountName'))]",
+        "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
         "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
       ],
       "properties": {
@@ -197,7 +155,7 @@
           "vmSize": "[variables('vmSize')]"
         },
         "osProfile": {
-          "computerName": "[parameters('vmName')]",
+          "computerName": "[variables('vmName')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]"
         },
@@ -211,7 +169,7 @@
           "osDisk": {
             "name": "osdisk",
             "vhd": {
-              "uri": "[concat('http://',parameters('newStorageAccountName'),'.', parameters('blobStorageEndpoint'), '/', variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, variables('vmStorageAccountContainerName'),'/', variables('OSDiskName'), '.vhd')]"
             },
             "caching": "ReadWrite",
             "createOption": "FromImage"
@@ -227,14 +185,14 @@
         "diagnosticsProfile": {
           "bootDiagnostics": {
             "enabled": "true",
-            "storageUri": "[concat('http://',parameters('newStorageAccountName'),'.', parameters('blobStorageEndpoint'))]"
+            "storageUri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob)]"
           }
         }
       }
     },
     {
       "type": "Microsoft.Compute/virtualMachines/extensions",
-      "name": "[concat(parameters('vmName'),'/LinuxCustomScriptExtension')]",
+      "name": "[concat(variables('vmName'),'/LinuxCustomScriptExtension')]",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
       "properties": {

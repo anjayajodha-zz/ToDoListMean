@@ -219,7 +219,7 @@
         "type": "CustomScriptForLinux",
         "typeHandlerVersion": "1.3",
         "settings": {
-          "fileUris":  ["https://raw.githubusercontent.com/anjayajodha/ToDoListMean/master/ToDoListMean/meanstack.sh"],
+          "fileUris":  ["https://raw.githubusercontent.com/anjayajodha/ToDoListMean/master/meanstack.sh"],
           "commandToExecute": "sh meanstack.sh"
         }
       }
