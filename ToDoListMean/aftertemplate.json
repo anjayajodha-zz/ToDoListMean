@@ -16,9 +16,9 @@
     },
     "blobStorageEndpoint": {
       "type": "string",
-      "defaultValue": "blob.azurestack.local",
+      "defaultValue": "blob.local.azurestack.external",
       "allowedValues": [
-        "blob.azurestack.local",
+        "blob.local.azurestack.external",
         "blob.core.windows.net"
       ],
       "metadata": {
@@ -229,6 +229,21 @@
             "enabled": "true",
             "storageUri": "[concat('http://',parameters('newStorageAccountName'),'.', parameters('blobStorageEndpoint'))]"
           }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('vmName'),'/LinuxCustomScriptExtension')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.3",
+        "settings": {
+          "fileUris":  ["https://raw.githubusercontent.com/anjayajodha/ToDoListMean/master/ToDoListMean/meanstack.sh"],
+          "commandToExecute": "sh meanstack.sh"
         }
       }
     }
